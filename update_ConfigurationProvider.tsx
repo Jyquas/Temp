@@ -63,20 +63,24 @@ const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ children,
     }
   };
 
-  const fetchHubSiteConfiguration = async (sp: SPFI, webUrl: string): Promise<Configuration | null> => {
+ const fetchHubSiteConfiguration = async (sp: SPFI, webUrl: string): Promise<Configuration | null> => {
     try {
-      const web = sp.web(webUrl);
-      const hubSiteData = await web.hubSiteData().using(Caching({ storeName: "session" }));
-
-      const config = await fetchConfigurationFromList(sp, webUrl);
-      if (config) return config;
-
-      if (hubSiteData.IsHubSite && hubSiteData.ParentHubSiteId) {
-        const parentHubSite = await sp.hubSites.getById(hubSiteData.ParentHubSiteId)();
-        const parentHubSiteUrl = sp.web(parentHubSite.SiteId).toUrl();
-        return await fetchHubSiteConfiguration(sp, parentHubSiteUrl);
+      const web = sp.web;
+      const hubSiteData = await web.hubSiteData();
+  
+      if (hubSiteData.IsHubSite) {
+        const config = await fetchConfigurationFromList(sp, webUrl);
+        if (config) return config;
       }
-
+  
+      if (hubSiteData.ParentHubSiteId) {
+        const parentHubSite = await sp.hubSites.getById(hubSiteData.ParentHubSiteId)();
+        const parentHubSiteUrl = parentHubSite.SiteUrl;
+        const parentWeb = spfi(parentHubSiteUrl, SPFx({ pageContext: { web: { absoluteUrl: parentHubSiteUrl } } }));
+  
+        return await fetchHubSiteConfiguration(parentWeb, parentHubSiteUrl);
+      }
+  
       return null;
     } catch (error) {
       console.error('Error fetching hub site configuration:', error);
