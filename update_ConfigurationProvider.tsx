@@ -4,6 +4,7 @@ import "@pnp/sp/webs";
 import "@pnp/sp/hubsites";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
+import { Caching } from "@pnp/sp/cache";
 
 interface Configuration {
   [key: string]: any;
@@ -22,19 +23,12 @@ interface ConfigurationProviderProps {
   sp: SPFI;
 }
 
-/**
- * Provides configuration data to child components.
- * Fetches configuration from SharePoint hub sites and stores it in context.
- */
 const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ children, sp }): ReactElement => {
   const [configuration, setConfiguration] = useState<Configuration | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    /**
-     * Fetches configuration from hub sites.
-     */
     const loadConfiguration = async () => {
       setLoading(true);
       try {
@@ -51,49 +45,12 @@ const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ children,
     loadConfiguration();
   }, [sp]);
 
-  /**
-   * Fetches configuration recursively from the current hub site or its parent.
-   * @param sp - PnPjs SPFI object.
-   * @param webUrl - The URL of the current web.
-   * @returns Configuration object if found, or null.
-   */
-  const fetchHubSiteConfiguration = async (sp: SPFI, webUrl: string): Promise<Configuration | null> => {
-    try {
-      const web = sp.web;
-      const hubSiteData = await web.hubSiteData();
-  
-      if (hubSiteData.IsHubSite) {
-        const config = await fetchConfigurationFromList(sp, webUrl);
-        if (config) return config;
-      }
-  
-      if (hubSiteData.ParentHubSiteId) {
-        const parentHubSiteId = hubSiteData.ParentHubSiteId;
-        const parentHubSite = await sp.hubSites.getById(parentHubSiteId)();
-        const parentHubSiteUrl = sp.web(parentHubSite.SiteId).toUrl();
-  
-        return await fetchHubSiteConfiguration(sp, parentHubSiteUrl);
-      }
-  
-      return null;
-    } catch (error) {
-      console.error('Error fetching hub site configuration:', error);
-      throw error;
-    }
-  };
-
-  /**
-   * Fetches configuration from a SharePoint list.
-   * @param sp - PnPjs SPFI object.
-   * @param webUrl - The URL of the web to fetch the configuration from.
-   * @returns Configuration object if found, or null.
-   */
   const fetchConfigurationFromList = async (sp: SPFI, webUrl: string): Promise<Configuration | null> => {
     try {
-      const listTitle = 'ConfigurationList'; // Replace with your actual list title
-      const itemId = 1; // Replace with the ID of your configuration item
+      const listTitle = 'ConfigurationList';
+      const itemId = 1;
       const web = sp.web(webUrl);
-      const item = await web.lists.getByTitle(listTitle).items.getById(itemId).get();
+      const item = await web.lists.getByTitle(listTitle).items.getById(itemId).using(Caching({ storeName: "session" })).get();
 
       const configuration = { ...item };
       delete configuration['Id'];
@@ -106,6 +63,27 @@ const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ children,
     }
   };
 
+  const fetchHubSiteConfiguration = async (sp: SPFI, webUrl: string): Promise<Configuration | null> => {
+    try {
+      const web = sp.web(webUrl);
+      const hubSiteData = await web.hubSiteData().using(Caching({ storeName: "session" }));
+
+      const config = await fetchConfigurationFromList(sp, webUrl);
+      if (config) return config;
+
+      if (hubSiteData.IsHubSite && hubSiteData.ParentHubSiteId) {
+        const parentHubSite = await sp.hubSites.getById(hubSiteData.ParentHubSiteId)();
+        const parentHubSiteUrl = sp.web(parentHubSite.SiteId).toUrl();
+        return await fetchHubSiteConfiguration(sp, parentHubSiteUrl);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching hub site configuration:', error);
+      throw error;
+    }
+  };
+
   return (
     <ConfigurationContext.Provider value={{ configuration, loading, error }}>
       {children}
@@ -113,10 +91,6 @@ const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ children,
   );
 };
 
-/**
- * Custom hook to access configuration context.
- * @returns Configuration context.
- */
 export const useConfiguration = (): ConfigurationContextProps => {
   const context = useContext(ConfigurationContext);
   if (context === undefined) {
