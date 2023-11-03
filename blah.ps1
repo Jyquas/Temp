@@ -35,34 +35,30 @@ $pages = Get-PnPListItem -List "Pages" -Query $pagesQuery -Connection $sourceCtx
 foreach ($page in $pages) {
     # Get the last 5 versions of the page
     $versions = $page.Versions | Select-Object -Last 5
-    
-    # Iterate through each version, starting with the oldest
-    for ($i = 0; $i -lt $versions.Count; $i++) {
-        $version = $versions[$i]
-        
-        # If it's the oldest version, create a new page in the target site
-        if ($i -eq 0) {
-            $newPage = Add-PnPClientSidePage -Name "$($page.Title)-v$($version.VersionLabel).aspx" -LayoutType Article -Connection $targetCtx
-            Add-PnPPageSection -Page $newPage -SectionTemplate TwoColumn -Connection $targetCtx
-        }
-        else {
-            # Otherwise, get the existing page from the target site
-            $newPage = Get-PnPClientSidePage -Identity "$($page.Title)-v$($version.VersionLabel).aspx" -Connection $targetCtx
-        }
-        
-        # Update the content of the page based on the version
-        # Assuming Get-ContentFromVersion is a function to extract content from a version
-        $content1 = Get-ContentFromVersion -Version $version -Column 1
-        $content2 = Get-ContentFromVersion -Version $version -Column 2
-        
-        Add-PnPPageTextPart -Page $newPage -Section 1 -Column 1 -Text $content1 -Connection $targetCtx
-        Add-PnPPageTextPart -Page $newPage -Section 1 -Column 2 -Text $content2 -Connection $targetCtx
-        
-        # Save and publish the page in the target site
-        $newPage.Save($targetCtx)
-        $newPage.Publish($targetCtx)
+
+    # Outside the loop, create a new modern page
+$newPage = Add-PnPClientSidePage -Name "$($page.Title).aspx" -LayoutType Article -Connection $targetCtx
+Add-PnPPageSection -Page $newPage -SectionTemplate TwoColumn -Connection $targetCtx
+
+# Loop through the versions of the classic page
+for ($i = 0; $i -lt $versions.Count; $i++) {
+    $version = $versions[$i]
+
+    # Update the content of the modern page based on the content of the classic page version
+    # Assume Get-ContentFromVersion is a function that extracts the content from a version of the classic page
+    $content1 = Get-ContentFromVersion -Version $version -Field "ContentField1"
+    $content2 = Get-ContentFromVersion -Version $version -Field "ContentField2"
+    Add-ContentToModernPage -Page $newPage -Content1 $content1 -Content2 $content2 -Connection $targetCtx
+
+    # If this is not the last version, check in the page to create a new version
+    if ($i -lt $versions.Count - 1) {
+        Set-PnPClientSidePage -Identity $newPage -CommentsEnabled $false -Publish -Connection $targetCtx
     }
 }
+
+# After the loop, publish the final version of the modern page
+Set-PnPClientSidePage -Identity $newPage -CommentsEnabled $false -Publish -Connection $targetCtx
+
 
 # Disconnect from the SharePoint sites
 Disconnect-PnPOnline -Connection $sourceCtx
