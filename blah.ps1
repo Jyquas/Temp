@@ -1,14 +1,9 @@
-# Load the required PnP PowerShell module
-Import-Module SharePointPnPPowerShellOnline -Scope CurrentUser -Force
+# Dot-source Connect.ps1
+. .\Connect.ps1
 
-# Connect to the source SharePoint site
-$sourceSiteUrl = "<Your-Source-SharePoint-Site-URL>"
-$cred = Get-Credential
-$sourceCtx = Connect-PnPOnline -Url $sourceSiteUrl -Credentials $cred -ReturnConnection
+# Call Connect-ToSites to establish the connections
+$sourceCtx, $targetCtx = Connect-ToSites -sourceSiteUrl "<Your-Source-SharePoint-Site-URL>" -targetSiteUrl "<Your-Target-SharePoint-Site-URL>"
 
-# Connect to the target SharePoint site
-$targetSiteUrl = "<Your-Target-SharePoint-Site-URL>"
-$targetCtx = Connect-PnPOnline -Url $targetSiteUrl -Credentials $cred -ReturnConnection
 
 # Query to get pages with a specific page layout from the source site
 $pagesQuery = "<View><Query><Where><Eq><FieldRef Name='PublishingPageLayout'/><Value Type='URL'>Level 1</Value></Eq></Where></Query></View>"
