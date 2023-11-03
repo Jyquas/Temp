@@ -6,7 +6,29 @@ $sourceCtx, $targetCtx = Connect-ToSites -sourceSiteUrl "<Your-Source-SharePoint
 
 
 # Query to get pages with a specific page layout from the source site
-$pagesQuery = "<View><Query><Where><Eq><FieldRef Name='PublishingPageLayout'/><Value Type='URL'>Level 1</Value></Eq></Where></Query></View>"
+$pagesQuery = @"
+<View>
+    <Joins>
+        <Join Type='INNER' ListAlias='MasterPageGallery'>
+            <Eq>
+                <FieldRef Name='PublishingPageLayout' RefType='Id' />
+                <FieldRef List='MasterPageGallery' Name='ID'/>
+            </Eq>
+        </Join>
+    </Joins>
+    <ProjectedFields>
+        <Field Name='PageLayoutDescription' Type='Lookup' List='MasterPageGallery' ShowField='Description'/>
+    </ProjectedFields>
+    <Query>
+        <Where>
+            <Eq>
+                <FieldRef Name='PageLayoutDescription' />
+                <Value Type='Text'>Level 1</Value>
+            </Eq>
+        </Where>
+    </Query>
+</View>
+"@
 $pages = Get-PnPListItem -List "Pages" -Query $pagesQuery -Connection $sourceCtx
 
 # Iterate through each page
