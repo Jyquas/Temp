@@ -47,6 +47,21 @@ $pages = Get-PnPListItem -List "Pages" -Query $pagesQuery -Connection $sourceCtx
 
 # Iterate through each page
 foreach ($page in $pages) {
+
+# Assuming $itemId is the ID of the item and $listTitle is the title of the list
+$listTitle = "Pages"
+$itemId = 1 # Replace with your actual list item ID
+
+# Retrieve all versions of the specified list item
+$versions = Get-PnPListItemVersion -List $listTitle -Identity $itemId
+
+# Iterate through the versions and perform actions
+foreach ($version in $versions) {
+    # Access the desired field values using their internal names
+    $content1 = $version.FieldValues["ContentField1"]
+    # Additional processing...
+}
+
     # Get the last 5 versions of the page
     $versions = $page.Versions | Select-Object -Last 5
 
