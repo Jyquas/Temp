@@ -62,6 +62,16 @@ foreach ($version in $versions) {
     # Additional processing...
 }
 
+# Retrieve all major versions (assuming major versions end with .0)
+$majorVersions = $allVersions | Where-Object { $_.VersionLabel -match "^\d+\.\d+$" } | Sort-Object -Property VersionLabel -Descending
+
+# Select the first 5 major versions, which are the most recent ones due to sorting
+$firstFiveMajorVersions = $majorVersions | Select-Object -First 5
+
+# Reverse the order to have the oldest of the five as the first one
+$reversedFiveMajorVersions = [array]::Reverse($firstFiveMajorVersions)
+
+
     # Get the last 5 versions of the page
     $versions = $page.Versions | Select-Object -Last 5
 
