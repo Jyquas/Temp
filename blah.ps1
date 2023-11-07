@@ -5,6 +5,30 @@
 $sourceCtx, $targetCtx = Connect-ToSites -sourceSiteUrl "<Your-Source-SharePoint-Site-URL>" -targetSiteUrl "<Your-Target-SharePoint-Site-URL>"
 
 
+function Add-ContentToModernPage {
+    param (
+        [Parameter(Mandatory = $true)] [string] $PageName,
+        [Parameter(Mandatory = $true)] [string] $Content1,
+        [Parameter(Mandatory = $true)] [string] $Content2,
+        [Parameter(Mandatory = $true)] $Connection
+    )
+
+    # Retrieve the modern page
+    $Page = Get-PnPClientSidePage -Identity $PageName -Connection $Connection
+
+    # Add the text content to the modern page in the first section, first column
+    Add-PnPPageTextPart -Page $Page -Text $Content1 -Section 1 -Column 1 -Connection $Connection
+
+    # Add the text content to the modern page in the first section, second column
+    Add-PnPPageTextPart -Page $Page -Text $Content2 -Section 1 -Column 2 -Connection $Connection
+
+    # Save and publish the page
+    $Page.Save()
+    $Page.Publish()
+}
+
+
+
 # Query to get pages with a specific page layout from the source site
 $pagesQuery = @"
 <View>
