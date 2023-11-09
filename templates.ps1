@@ -17,8 +17,13 @@ $intranetContentTypeId = $contentTypes | Where-Object { $_.Name -like "*intranet
 # Check if the 'intranet' content type exists
 if ($intranetContentTypeId) {
     # Construct the CAML query
+    $camlQueryXml = "<View><Query><Where>"
+    $conditionXml = $intranetContentTypeIds | ForEach-Object { "<Or><Eq><FieldRef Name='ContentTypeId'/><Value Type='ContentTypeId'>$_</Value></Eq></Or>" }
+    $camlQueryXml += $conditionXml -join ""
+    $camlQueryXml += "</Where></Query></View>"
+
     $camlQuery = New-Object Microsoft.SharePoint.Client.CamlQuery
-    $camlQuery.ViewXml = "<View><Query><Where><Eq><FieldRef Name='ContentTypeId'/><Value Type='ContentTypeId'>$intranetContentTypeId</Value></Eq></Where></Query></View>"
+    $camlQuery.ViewXml = $camlQueryXml
 
     # Retrieve files from the Master Page Gallery
     $files = Get-PnPListItem -List "Master Page Gallery" -Query $camlQuery -Fields "FileRef", "FileLeafRef"
