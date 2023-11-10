@@ -13,41 +13,16 @@ Connect-PnPOnline -Url $siteUrl -Credentials $cred
 # Get the ID of the 'intranet' content type
 $contentTypes = Get-PnPContentType
 $intranetContentTypeId = $contentTypes | Where-Object { $_.Name -like "*intranet*" } | Select-Object -ExpandProperty Id
+# Retrieve all files from the Master Page Gallery
+$allFiles = Get-PnPListItem -List "Master Page Gallery" -Fields "ContentTypeId", "FileRef", "FileLeafRef"
 
-# Check if the 'intranet' content type exists
-if ($intranetContentTypeId) {
-    # Construct the CAML query
-    $camlQueryXml = "<View><Query><Where>"
-    $conditionXml = $intranetContentTypeIds | ForEach-Object { "<Or><Eq><FieldRef Name='ContentTypeId'/><Value Type='ContentTypeId'>$_</Value></Eq></Or>" }
-    $camlQueryXml += $conditionXml -join ""
-    $camlQueryXml += "</Where></Query></View>"
+# Filter files based on ContentType ID
+$filteredFiles = $allFiles | Where-Object { $intranetContentTypeIds -contains $_["ContentTypeId"].StringValue }
 
-    $camlQuery = New-Object Microsoft.SharePoint.Client.CamlQuery
-    $camlQuery.ViewXml = $camlQueryXml
-
-    # Retrieve files from the Master Page Gallery
-    $files = Get-PnPListItem -List "Master Page Gallery" -Query $camlQuery -Fields "FileRef", "FileLeafRef"
-
-    # Process each file
+# Process each filtered file
+foreach ($file in $filteredFiles) {
+    $fileUrl = $file.FieldValues.FileRef
     
-# Process each file
-foreach ($file in $files) {
-    $fileUrl = $file["FileRef"]
-    
-    # Download the file
-    $tempFile = [System.IO.Path]::GetTempFileName()
-    Get-PnPFile -Url $fileUrl -AsFile -Path $tempFile -Force
-
-    # Load and modify the XML content
-    [xml]$xmlContent = Get-Content $tempFile
-    $xmlContent.DocumentElement.RemoveChild($xmlContent.DocumentElement.":DelegateControl")
-    
-    # Save the modified content
-    $xmlContent.Save($tempFile)
-
-    # Upload the modified file
-    Set-PnPFile -Path $tempFile -Url $fileUrl -OverwriteIfExist
-}
-
-# Disconnect the session
+    }
+    # Disconnect the session
 Disconnect-PnPOnline
