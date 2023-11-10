@@ -23,25 +23,29 @@ $filteredFiles = $allFiles | Where-Object { $intranetContentTypeIds -contains $_
 foreach ($file in $filteredFiles) {
     $fileUrl = $file.FieldValues.FileRef
 
-    # Generate a temporary file path with .xml extension
+    # Generate a temporary file path with .aspx extension
     $tempFileBasePath = [System.IO.Path]::GetTempPath()
     $tempFileName = [System.IO.Path]::GetRandomFileName()
-    $tempFilePath = "$tempFileBasePath$tempFileName.xml"
+    $tempFilePath = "$tempFileBasePath$tempFileName.aspx"
 
     # Download the file to the temporary path
     Get-PnPFile -Url $fileUrl -AsFile -Path $tempFilePath -Force
 
-    # Load and modify the XML content
-    [xml]$xmlContent = Get-Content $tempFilePath
-    # Your XML modification logic goes here
-    # For example: $xmlContent.DocumentElement.RemoveChild($xmlContent.DocumentElement.":DelegateControl")
+    # Load the ASPX content
+    $aspxContent = Get-Content $tempFilePath -Raw
+
+    # Modify the ASPX content to remove the specific HTML node
+    # This is a basic example and might need to be adjusted for your specific scenario
+    $pattern = '<SharePointWebControls:DelegateControl[^>]*>.*?</SharePointWebControls:DelegateControl>'
+    $aspxContent = [regex]::Replace($aspxContent, $pattern, '', [System.Text.RegularExpressions.RegexOptions]::Singleline)
 
     # Save the modified content back to the temporary file
-    $xmlContent.Save($tempFilePath)
+    Set-Content -Path $tempFilePath -Value $aspxContent
 
     # Upload the modified file back to SharePoint
     Set-PnPFile -Path $tempFilePath -Url $fileUrl -OverwriteIfExist
 }
+
 
     # Disconnect the session
 Disconnect-PnPOnline
