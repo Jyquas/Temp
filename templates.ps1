@@ -22,7 +22,8 @@ $filteredFiles = $allFiles | Where-Object { $intranetContentTypeIds -contains $_
 # Process each filtered file
 foreach ($file in $filteredFiles) {
     $fileUrl = $file.FieldValues.FileRef
-
+# Extract the SharePoint folder URL from the file URL
+    $folderUrl = $fileUrl.Substring(0, $fileUrl.Length - $fileName.Length)
     # Generate a temporary file path with .aspx extension
     $tempFileBasePath = [System.IO.Path]::GetTempPath()
     $tempFileName = [System.IO.Path]::GetRandomFileName()
@@ -43,7 +44,7 @@ foreach ($file in $filteredFiles) {
     Set-Content -Path $tempFilePath -Value $aspxContent
 
     # Upload the modified file back to SharePoint
-    Set-PnPFile -Path $tempFilePath -Url $fileUrl -OverwriteIfExist
+      Add-PnPFile -Path $tempFilePath -Folder $folderUrl -FileName $fileName -OverwriteIfExist
 }
 
 
