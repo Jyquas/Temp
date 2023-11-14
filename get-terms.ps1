@@ -38,6 +38,38 @@ function Process-Terms {
     return $result
 }
 
+function ProcessTerms {
+    param (
+        [Parameter(Mandatory = $true)]
+        $Terms,
+        [string]$ParentPath = '' # Add a parameter for the parent path
+    )
+
+    $result = @()
+
+    foreach ($term in $Terms) {
+        # Build the term path
+        $termPath = $ParentPath + '/' + $term.Name
+
+        $termData = @{
+            Term = $term.Name
+            Id = $term.Id
+            LocalCustomProperties = $term.LocalCustomProperties
+            Path = $termPath.TrimStart('/') # Remove leading slash for root terms
+        }
+
+        # If the term has child terms, process them recursively
+        if ($term.Terms -and $term.Terms.Count -gt 0) {
+            $termData["ChildTerms"] = Process-Terms -Terms $term.Terms -ParentPath $termPath
+        }
+
+        $result += $termData
+    }
+
+    return $result
+}
+
+
 # Variables
 $siteUrl = "https://yourtenant.sharepoint.com/sites/yoursite"
 $termGroupId = "your-term-group-id"
