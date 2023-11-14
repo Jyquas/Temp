@@ -58,3 +58,35 @@ foreach ($item in $classicPageContent) {
 # Output completion message
 Write-Host "Content migrated to modern page: $modernPageName"
 
+# Connect to SharePoint
+Connect-PnPOnline -Url $siteUrl -Interactive
+
+# Retrieve list items
+$listItems = Get-PnPListItem -List $listName
+
+foreach ($item in $listItems) {
+    $content = $item["PublishingPageContent"]
+
+$pattern = '<a[^>]*href="[^"]*_layouts/15/fixupredirect\.aspx\?WebID=' + $staticWebId + '&termSetID=' + $staticTermSetId + '&termId=([\w-]+)[^"]*"[^>]*>'
+
+    # Find all matches
+    $matches = [regex]::Matches($content, $pattern)
+
+    foreach ($match in $matches) {
+        $termId = $match.Groups[1].Value
+        $foundTerm = Find-TermById -Terms $termMappings -TermId $termId
+
+        if ($foundTerm) {
+            $newUrl = $foundTerm.FriendlyUrlSegment
+            # Replace the match with the new URL
+            $content = $content.Replace($match.Value, "<a href=`"$newUrl`">")
+        }
+    }
+
+    # Update the list item with the new content
+    Set-PnPListItem -List $listName -Identity $item.Id -Values @{"PublishingPageContent" = $content}
+}
+
+
+
+
