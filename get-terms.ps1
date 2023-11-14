@@ -2,41 +2,39 @@ function Process-Terms {
     param (
         [Parameter(Mandatory = $true)]
         $Terms,
-        $TermStore,
-        $TermSetId,
-        $NewUrlBase
+        [string]$ParentFriendlyUrlSegment = '' # Parameter for parent's friendly URL segment
     )
 
     $result = @()
 
     foreach ($term in $Terms) {
-        # Retrieve the associated navigation term
-        $navTerm = $TermStore.GetTerm($term.Id)
-        $TermStore.Context.Load($navTerm)
-        $TermStore.Context.ExecuteQuery()
+        # Get the current term's friendly URL segment, if available
+        $currentFriendlyUrlSegment = $term.LocalCustomProperties["FriendlyUrlSegment"]
 
-        if ($navTerm.TargetUrl -ne $null) {
-            # Construct the new URL based on the term data
-            $newUrl = $NewUrlBase + "[new page path based on term data].aspx"
-            
-            # Build term data
-            $termData = @{
-                TermSetId = $TermSetId
-                TermId = $term.Id.ToString()
-                NewUrl = $newUrl
-            }
-            $result += $termData
+        # Build the full friendly URL segment for the current term
+        $fullFriendlyUrlSegment = $ParentFriendlyUrlSegment
+        if ($currentFriendlyUrlSegment) {
+            $fullFriendlyUrlSegment += '/' + $currentFriendlyUrlSegment
         }
 
-        # Process child terms if any
+        $termData = @{
+            Term = $term.Name
+            Id = $term.Id
+            LocalCustomProperties = $term.LocalCustomProperties
+            FriendlyUrlSegment = $fullFriendlyUrlSegment.TrimStart('/')
+        }
+
+        # Process child terms recursively, if any
         if ($term.Terms -and $term.Terms.Count -gt 0) {
-            $childResults = Process-Terms -Terms $term.Terms -TermStore $TermStore -TermSetId $TermSetId -NewUrlBase $NewUrlBase
-            $result += $childResults
+            $termData["ChildTerms"] = Process-Terms -Terms $term.Terms -ParentFriendlyUrlSegment $fullFriendlyUrlSegment
         }
+
+        $result += $termData
     }
 
     return $result
 }
+
 
 function ProcessTerms {
     param (
