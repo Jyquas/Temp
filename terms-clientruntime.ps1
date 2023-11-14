@@ -4,11 +4,10 @@ Add-Type -Path "path\to\Microsoft.SharePoint.Client.Runtime.dll"
 Add-Type -Path "path\to\Microsoft.SharePoint.Client.Taxonomy.dll"
 
 # SharePoint site details
-$siteUrl = "https://yourtenant.sharepoint.com/sites/yoursite"
-$username = "your-username"
-$password = ConvertTo-SecureString "your-password" -AsPlainText -Force
+$siteUrl = "http://yoursharepointserver/sites/yoursite"
+
+# Create context
 $ctx = New-Object Microsoft.SharePoint.Client.ClientContext($siteUrl)
-$ctx.Credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($username, $password)
 
 # Access taxonomy session, term store, term group, and term set
 $taxonomySession = [Microsoft.SharePoint.Client.Taxonomy.TaxonomySession]::GetTaxonomySession($ctx)
