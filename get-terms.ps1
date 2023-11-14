@@ -67,6 +67,48 @@ function ProcessTerms {
     return $result
 }
 
+function ProcessFullPathTerms {
+    param (
+        [Parameter(Mandatory = $true)]
+        $Terms,
+        [string]$ParentPath = '' # Parameter for the path constructed up to the parent
+    )
+
+    $result = @()
+
+    foreach ($term in $Terms) {
+        # Determine the current term's segment (either a custom friendly URL segment or the term name)
+        $currentSegment = $term.LocalCustomProperties["FriendlyUrlSegment"]
+        if (-not $currentSegment) {
+            $currentSegment = $term.Name
+        }
+
+        # Build the full path for the current term
+        $fullPath = $ParentPath
+        if ($fullPath -and $currentSegment) {
+            $fullPath += '/'
+        }
+        $fullPath += $currentSegment
+
+        $termData = @{
+            Term = $term.Name
+            Id = $term.Id
+            LocalCustomProperties = $term.LocalCustomProperties
+            Path = $fullPath
+        }
+
+        # Process child terms recursively, if any
+        if ($term.Terms -and $term.Terms.Count -gt 0) {
+            $termData["ChildTerms"] = ProcessFullPathTerms -Terms $term.Terms -ParentPath $fullPath
+        }
+
+        $result += $termData
+    }
+
+    return $result
+}
+
+
 
 # Variables
 $siteUrl = "https://yourtenant.sharepoint.com/sites/yoursite"
