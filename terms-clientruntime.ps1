@@ -5,17 +5,35 @@ Add-Type -Path "path\to\Microsoft.SharePoint.Client.Taxonomy.dll"
 
 # SharePoint site details
 $siteUrl = "http://yoursharepointserver/sites/yoursite"
+$username = "domain\username"
+$password = ConvertTo-SecureString "your-password" -AsPlainText -Force
+$credentials = New-Object System.Net.NetworkCredential($username, $password)
 
 # Create context
 $ctx = New-Object Microsoft.SharePoint.Client.ClientContext($siteUrl)
+$ctx.Credentials = $credentials
 
-# Access taxonomy session, term store, term group, and term set
+# Access taxonomy session and term store
 $taxonomySession = [Microsoft.SharePoint.Client.Taxonomy.TaxonomySession]::GetTaxonomySession($ctx)
 $termStore = $taxonomySession.GetDefaultSiteCollectionTermStore()
-$termGroup = $termStore.GetGroup("your-term-group-id")
-$termSet = $termGroup.GetTermSet("your-term-set-id")
-$ctx.Load($termSet)
+$ctx.Load($termStore)
 $ctx.ExecuteQuery()
+
+# Term group and term set ID
+$termGroupIdString = "your-term-group-id" # Replace with your actual term group ID
+$termSetIdString = "your-term-set-id" # Replace with your actual term set ID
+$termGroupId = New-Object Guid($termGroupIdString)
+$termSetId = New-Object Guid($termSetIdString)
+
+# Load the term group
+$termGroup = $termStore.GetGroup($termGroupId)
+$ctx.Load($termGroup)
+$ctx.ExecuteQuery()
+
+# Load the term group's term sets and retrieve the specific term set
+$ctx.Load($termGroup.TermSets)
+$ctx.ExecuteQuery()
+$termSet = $termGroup.TermSets | Where-Object { $_.Id -eq $termSetId }
 
 # Function to process terms
 function Process-Terms {
@@ -30,9 +48,6 @@ function Process-Terms {
         $ctx.Load($term)
         $ctx.ExecuteQuery()
 
-        # Assuming target URL is stored in a local custom property
-        $targetUrl = $term.LocalCustomProperties["TargetUrl"]
-
         # Retrieve the navigation term to get the friendly URL
         $navTerm = [Microsoft.SharePoint.Client.Taxonomy.NavigationTerm]::GetNavigationTerm($term)
         $ctx.Load($navTerm)
@@ -40,7 +55,6 @@ function Process-Terms {
 
         $termData = @{
             TermId = $term.Id
-            TargetUrl = $targetUrl
             FriendlyUrl = $navTerm.GetResolvedDisplayUrl($null)
         }
         $result += $termData
