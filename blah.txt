@@ -1,0 +1,31 @@
+Comprehensive Findings:
+
+Publisher-Driven Approach:
+
+The system is dependent on publishers effectively understanding their audience to ensure targeted content delivery. This requires a deep insight into the specific interests and needs of different user groups within the organisation.
+Policy and Procedure Development:
+
+Implementing audience targeting necessitates the development of clear policies and procedures. These should guide the definition of audience groups, management of distribution lists or SharePoint groups, and compliance with organisational data policies.
+Management of Audience Groups:
+
+Effective audience targeting involves creating and managing distribution groups or SharePoint groups. Guidelines for forming and maintaining these groups for targeted content distribution are essential.
+Limitations in Consumer Control:
+
+SharePoint Online's audience targeting does not allow end-users to customise their content feed or opt out of specific types of notices. Precision in audience segmentation by publishers is critical due to this limitation.
+Content Accessibility and Visibility:
+
+There's a risk that targeted content might not be easily accessible or visible to users outside the intended audience groups, potentially creating information silos within the organisation.
+Editor Access and Content Management:
+
+Editors maintain full access to all content, including those with audience targeting. This is vital for managing all published materials consistently and with quality.
+Balancing Broad Reach vs Targeted Relevance:
+
+Consider the benefits of broad accessibility (simplified processes, wider dissemination) against the advantages of targeted relevance (enhanced engagement for specific groups, tailored content).
+Recommendations for Implementation:
+
+Develop and enforce policies and procedures for audience targeting to ensure effective, compliant content delivery.
+Train publishers on audience segmentation and the intricacies of a publisher-driven platform.
+Regularly revise and update distribution or SharePoint groups to stay aligned with the organisation's evolving needs.
+Approach During Full Deployment:
+
+During the full deployment phase, we will focus on gradually expanding the use of audience targeting, closely monitoring user engagement and feedback. This approach will help us fine-tune our strategies and make necessary adjustments to policies and group management. Regular reviews will ensure that the platform remains relevant and effective for all users across the organisation.
