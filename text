@@ -1,0 +1,52 @@
+Introduction
+This document provides a detailed estimation for migrating an existing inventory and purchase order management system to SharePoint, focusing on the development of a Single Page Application (SPA), RESTful API, database enhancements, and the addition of audit logging functionalities. It offers a granular view of the interfaces, UI components, and tasks to be accomplished.
+
+SPA Development Details
+User Interface Components
+Inventory Management
+
+List View Interface: Display inventory items with sorting and filtering capabilities.
+Item Detail View: Detailed view for individual inventory items.
+Add/Edit Form: Interface for adding new items or editing existing ones.
+Low Stock Alert Interface: Display alerts for items with low stock.
+Purchase Order Management
+
+Order List View: Display purchase orders with status indicators.
+Order Detail View: Detailed view for individual purchase orders.
+Order Creation/Edit Form: Interface for creating or editing orders.
+Partial Completion Interface: Manage and process partial order completions.
+Delivery Notice Management
+
+Delivery Notice List: List view for managing delivery notices.
+Delivery Creation Interface: Form for creating new delivery notices, including item selection for delivery.
+Supplier and Product Catalogs
+
+Supplier List View: Display suppliers with options to add, edit, or delete.
+Product List View: Display products linked to suppliers with management options.
+Product/Supplier Edit Forms: Forms for editing or adding new suppliers/products.
+Audit Log Review
+
+Audit Log Dashboard: Interface for reviewing audit logs with filtering and search capabilities.
+RESTful API Development
+Inventory Management Endpoints
+
+CRUD operations for inventory items.
+Endpoint for generating low stock alerts.
+Purchase Orders Endpoints
+
+Endpoints for order creation, update (including handling partial completions), and detail retrieval.
+Delivery Notices Endpoints
+
+Endpoints for creating, updating, and listing delivery notices.
+Suppliers and Products Endpoints
+
+Management endpoints for suppliers and products.
+Audit Logs Endpoint
+
+Endpoint for retrieving audit logs with filtering based on user actions, date range, etc.
+Database Enhancements
+Schema Modifications: Identification of necessary schema changes for new functionalities and audit logging.
+Data Migration Tasks: Planning for the migration of existing data to the new schema.
+SharePoint Integration
+Custom Web Parts: Development of custom SharePoint web parts for SPA integration.
+Authentication and Authorization: Configuration for using SharePoint's authentication, aligning with RESTful API security.
