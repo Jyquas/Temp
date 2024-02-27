@@ -1,40 +1,33 @@
-public class ApiTestFixture : IDisposable
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using YourNamespace; // Update with your actual namespace
+using YourNamespace.Data; // Update with the namespace where your DbContext is located
+
+public class CustomWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
 {
-    public HttpClient Client { get; private set; }
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public ApiTestFixture()
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        _factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
+        builder.ConfigureServices(services =>
+        {
+            // Remove the existing DbContext configuration
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType ==
+                    typeof(DbContextOptions<YourDbContext>));
+
+            if (descriptor != null)
             {
-                builder.ConfigureServices(services =>
-                {
-                    // Find the descriptor of the database context you want to replace
-                    var dbContextDescriptor = services.SingleOrDefault(
-                        d => d.ServiceType == typeof(DbContextOptions<YourDbContext>));
+                services.Remove(descriptor);
+            }
 
-                    if (dbContextDescriptor != null)
-                    {
-                        services.Remove(dbContextDescriptor);
-                    }
-
-                    // Add the in-memory database context
-                    services.AddDbContext<YourDbContext>(options =>
-                    {
-                        options.UseInMemoryDatabase("InMemoryDbForTesting");
-                    });
-
-                    // Optional: Apply additional configuration or services specific for testing
-                });
+            // Add DbContext using an in-memory database for testing
+            services.AddDbContext<YourDbContext>(options =>
+            {
+                options.UseInMemoryDatabase("InMemoryDbForTesting");
             });
 
-        Client = _factory.CreateClient();
-    }
-
-    public void Dispose()
-    {
-        Client.Dispose();
-        _factory.Dispose();
+            // Additional configuration as needed, e.g., seeding data
+        });
     }
 }
