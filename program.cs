@@ -71,6 +71,9 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new RequireAdminGroupRequirement(adminGroupSid)));
 });
 
+  // Load configuration
+        var configuration = builder.Configuration;
+
 // Register the custom authorization handler
 builder.Services.AddSingleton<IAuthorizationHandler, RequireAdminGroupHandler>();
 
@@ -78,7 +81,10 @@ builder.Services.AddScoped<IActiveDirectoryService>(provider =>
             new ActiveDirectoryService("YOUR_DOMAIN"));
 
 
-builder.Services.AddControllers();
+// Add services to the container.
+        builder.Services.AddControllers();
+        builder.Services.AddScoped<IActiveDirectoryService, ActiveDirectoryService>();
+
 
 var app = builder.Build();
 
