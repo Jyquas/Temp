@@ -1,13 +1,16 @@
 using System.DirectoryServices.AccountManagement;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 
 public class ActiveDirectoryService : IActiveDirectoryService
 {
     private readonly string _domain;
+    private readonly List<string> _targetGroups;
 
-    public ActiveDirectoryService(string domain)
+    public ActiveDirectoryService(IConfiguration configuration)
     {
-        _domain = domain;
+        _domain = configuration["ActiveDirectory:Domain"];
+        _targetGroups = configuration.GetSection("TargetGroups").Get<List<string>>();
     }
 
     public async Task<IEnumerable<string>> GetUserGroupsAsync(string userName)
@@ -20,7 +23,10 @@ public class ActiveDirectoryService : IActiveDirectoryService
                 if (user == null)
                     return Enumerable.Empty<string>();
 
-                var groups = user.GetGroups().Select(g => g.Name).ToList();
+                var groups = user.GetGroups()
+                    .Where(g => _targetGroups.Contains(g.Name))
+                    .Select(g => g.Name)
+                    .ToList();
                 return groups;
             }
         });
@@ -45,7 +51,10 @@ public class ActiveDirectoryService : IActiveDirectoryService
                     claims.Add(new Claim(ClaimTypes.Name, user.DisplayName));
 
                 // Add group claims
-                var groups = user.GetAuthorizationGroups();
+                var groups = user.GetAuthorizationGroups()
+                    .Where(g => _targetGroups.Contains(g.Name))
+                    .ToList();
+
                 foreach (var group in groups)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, group.Name));
