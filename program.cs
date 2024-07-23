@@ -74,6 +74,10 @@ builder.Services.AddAuthorization(options =>
 // Register the custom authorization handler
 builder.Services.AddSingleton<IAuthorizationHandler, RequireAdminGroupHandler>();
 
+builder.Services.AddScoped<IActiveDirectoryService>(provider =>
+            new ActiveDirectoryService("YOUR_DOMAIN"));
+
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
