@@ -1,0 +1,74 @@
+using Microsoft.AspNetCore.Authentication.Certificate;
+using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Load configuration
+        var configuration = builder.Configuration;
+
+        // Add services to the container.
+        builder.Services.AddControllers();
+
+        // Configure authentication
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = NegotiateDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = NegotiateDefaults.AuthenticationScheme;
+        })
+        .AddNegotiate()
+        .AddCertificate(options =>
+        {
+            options.AllowedCertificateTypes = CertificateTypes.All;
+            options.Events = new CertificateAuthenticationEvents
+            {
+                OnCertificateValidated = context =>
+                {
+                    // Add claims from certificate information
+                    var claims = new[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, context.ClientCertificate.Subject, ClaimValueTypes.String, context.Options.ClaimsIssuer),
+                        new Claim(ClaimTypes.Name, context.ClientCertificate.Subject, ClaimValueTypes.String, context.Options.ClaimsIssuer)
+                    };
+                    context.Principal.AddIdentity(new ClaimsIdentity(claims, context.Scheme.Name));
+                    context.Success();
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+        // Register Active Directory service, claims transformer, and custom authorization handler
+        builder.Services.AddScoped<IActiveDirectoryService, ActiveDirectoryService>();
+        builder.Services.AddSingleton<IClaimsTransformation, ClaimsTransformer>();
+        builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>();
+
+        // Add authorization policies
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("RequireAdminsGroup", policy =>
+                policy.Requirements.Add(new CustomAuthorizationRequirement("Admins")));
+            options.AddPolicy("RequireUsersGroup", policy =>
+                policy.Requirements.Add(new CustomAuthorizationRequirement("Users")));
+        });
+
+        var app = builder.Build();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+
+        app.UseHttpsRedirection();
+        app.UseAuthentication(); // Add authentication middleware
+        app.UseAuthorization();
+        app.MapControllers();
+        app.Run();
+    }
+}
