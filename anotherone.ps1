@@ -1,61 +1,109 @@
-# Set the directory paths
-$sharedPath = "C:\path\to\shared\directory"   # Path to the shared directory with .dat files
-$archivePath = "$sharedPath\archive"          # Path to archive processed files
+# Define the path to the .dat file
+$filePath = "C:\path\to\your\file.dat"
 
-# Ensure the archive directory exists
-if (!(Test-Path -Path $archivePath)) {
-    New-Item -ItemType Directory -Path $archivePath
-}
+# Define the field specifications with Length and Type for each of the first 40 fields
+$fieldSpecifications = @(
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 4; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 4; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 2; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 2; Type = 'Character' },
+    @{ Length = 4; Type = 'Character' },
+    @{ Length = 4; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 5; Type = 'Character' },
+    @{ Length = 7; Type = 'Character' },
+    @{ Length = 2; Type = 'Number' },      # Numeric field
+    @{ Length = 39; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 4; Type = 'Number' },      # Numeric field
+    @{ Length = 6; Type = 'Number' },      # Numeric field
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 1; Type = 'Character' },
+    @{ Length = 2; Type = 'Character' },
+    @{ Length = 3; Type = 'Character' },
+    @{ Length = 2; Type = 'Character' },
+    @{ Length = 8; Type = 'Date' },        # Date as character field
+    @{ Length = 8; Type = 'Date' }         # Date as character field
+)
 
-# Define byte lengths for each field (only define up to field 40)
-$fieldByteLengths = @(3, 4, 6, 8, 2, 3, 4, 3, 5, 6, 2, 4, 3, 3, 2, 4, 6, 4, 3, 2, 
-                     5, 3, 2, 4, 3, 6, 2, 5, 4, 6, 3, 2, 5, 4, 3, 2, 6, 3, 4, 2)
+# Open the file stream and binary reader
+$stream = [System.IO.FileStream]::new($filePath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
+$reader = [System.IO.BinaryReader]::new($stream)
 
-# Define a helper function to read specific bytes and convert to types
-function Read-FieldData ($reader, $length) {
-    $bytes = $reader.ReadBytes($length)
+# Initialize an array to hold the data
+$data = @()
 
-    # Convert based on the length (assuming most fields are integer or string in this case)
-    if ($length -eq 4) {
-        return [BitConverter]::ToInt32($bytes, 0)  # Convert 4-byte integer
-    } elseif ($length -eq 8) {
-        return [BitConverter]::ToDouble($bytes, 0)  # Convert 8-byte double
-    } else {
-        return [System.Text.Encoding]::ASCII.GetString($bytes).Trim()  # Convert to string
-    }
-}
+try {
+    # Loop through each field specification
+    foreach ($fieldSpec in $fieldSpecifications) {
+        $length = $fieldSpec.Length
+        $type = if ($fieldSpec.ContainsKey("Type")) { $fieldSpec.Type } else { 'Character' }
+        $bytes = $reader.ReadBytes($length)
 
-# Process each .dat file in the shared directory
-Get-ChildItem -Path $sharedPath -Filter "*.dat" | ForEach-Object {
-    $filePath = $_.FullName
-    Write-Output "Processing file: $filePath"
-
-    # Open the file for binary reading
-    $fileStream = [System.IO.File]::OpenRead($filePath)
-    $reader = New-Object System.IO.BinaryReader($fileStream)
-
-    try {
-        # Read data from the first 40 fields
-        $dataRecord = @{}
-        for ($i = 0; $i -lt 40; $i++) {
-            $dataRecord["Field$($i + 1)"] = Read-FieldData -reader $fieldByteLengths[$i]
+        # Process data based on specified type
+        switch ($type) {
+            'Character' {
+                # Treat as ASCII string, trimming any null characters if needed
+                $value = [System.Text.Encoding]::ASCII.GetString($bytes).TrimEnd([char]0)
+            }
+            'Number' {
+                # Convert numeric fields based on length (adjust as needed for type)
+                if ($length -le 2) {
+                    $value = [BitConverter]::ToInt16($bytes, 0)      # Short integer for 2 bytes
+                } elseif ($length -le 4) {
+                    $value = [BitConverter]::ToInt32($bytes, 0)      # Integer for 4 bytes
+                } elseif ($length -le 8) {
+                    $value = [BitConverter]::ToInt64($bytes, 0)      # Long integer for larger lengths
+                }
+            }
+            'Date' {
+                # Date as 8-character string (e.g., YYYYMMDD format)
+                $value = [System.Text.Encoding]::ASCII.GetString($bytes).TrimEnd([char]0)
+                # Optional: Convert to date object if needed
+                if ($value -match '^\d{8}$') {
+                    $year = [int]$value.Substring(0, 4)
+                    $month = [int]$value.Substring(4, 2)
+                    $day = [int]$value.Substring(6, 2)
+                    $value = [datetime]::new($year, $month, $day)
+                }
+            }
+            Default {
+                # Fallback to Character if no specific type matched
+                $value = [System.Text.Encoding]::ASCII.GetString($bytes).TrimEnd([char]0)
+            }
         }
 
-        # Output or process data as needed
-        Write-Output "Data Record:"
-        $dataRecord.GetEnumerator() | ForEach-Object { Write-Output "$($_.Key): $($_.Value)" }
+        # Add the value to data array
+        $data += $value
+    }
 
-        # Close and archive the file after processing
-        $reader.Close()
-        $fileStream.Close()
-        Move-Item -Path $filePath -Destination "$archivePath\$(Get-Date -Format 'yyyyMMdd_HHmmss')_$($_.Name)"
-    }
-    catch {
-        Write-Output "Error processing file: $_"
-    }
-    finally {
-        # Ensure resources are closed
-        if ($reader) { $reader.Close() }
-        if ($fileStream) { $fileStream.Close() }
-    }
+    # Output the data
+    $data | ForEach-Object { Write-Output $_ }
+}
+catch {
+    Write-Error "An error occurred while processing the file: $_"
+}
+finally {
+    # Clean up
+    $reader.Close()
+    $stream.Close()
 }
